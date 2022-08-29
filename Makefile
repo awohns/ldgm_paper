@@ -77,11 +77,17 @@ trios_info.txt:
 nygc_notrios_%.samples: nygc_%.samples
 	python3 tsutil.py remove_trios $^ trios_info.txt $@
 
-nygc_removedtrios_%.trees: nygc_%.trees
-	python3 tsutil.py remove_trios_ts $^ trios_info.txt $@
+
+######################################################
+# Create LD blocks so all variants fall within a block
+######################################################
+
+final_blocks-chr%.GRCh38.csv:
+	python3 create_new_ld_blocks.py $*
+
 
 ####################################################
-# Standard pipeline for samples file to .dated.trees
+# Standard pipeline for samples file to .trees
 ####################################################
 
 %.ancestors: %.samples
@@ -108,8 +114,13 @@ nygc_removedtrios_%.trees: nygc_%.trees
 %.trees.bcf: %.trees
 	msp vcf -P 2 $^ | bcftools view - -O b -o $@
 
-%.snipped.trees: %.trees ${CENTROMERES_CSV}
-	python3 tsutil.py snip-centromere $< $@ $* ${CENTROMERES_CSV}
+
+######################################################
+# Try mapping additional variants to the tree sequence
+######################################################
+
+nygc_removedtrios_mapped_chr%.trees: nygc_removedtrios_chr%.trees
+	python3 map_additional_mutations.py $*
 
 
 ###################################
