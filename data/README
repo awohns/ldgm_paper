@@ -1,4 +1,4 @@
-Populate this directory with LDGMs downloaded from our Zenodo repository by running:
+Populate this directory with LDGMs produced from the 1000 Genomes Data:
 
 ```
 make download
