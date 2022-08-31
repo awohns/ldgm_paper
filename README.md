@@ -16,6 +16,15 @@ You must first clone this repo:
 git clone https://github.com/awohns/ldgm_paper.git
 ```
 
+### Downloading LDGMs inferred from the 1000 Genomes Project
+
+Populate this the data directory with LDGMs produced from the 1000 Genomes Project by running:
+
+```
+cd data
+make download
+```
+
 ### Required Software
 
 #### Installing required python modules
