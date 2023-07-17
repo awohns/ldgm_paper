@@ -1,16 +1,18 @@
 # Code for "Extremely sparse models of linkage disequilibrium in ancestrally diverse association studies"
 
-This repo contains code used in "Extremely sparse models of linkage disequilibrium in ancestrally diverse association studies" (see forthcoming preprint).
+This repo contains code to reproduce analysis and figures in "Extremely sparse models of linkage disequilibrium in ancestrally diverse association studies". The preprint can be cited as follows:
 
-This includes:
+> Pouria Salehi Nowbandegani, Anthony Wilder Wohns, Jenna L. Ballard, Eric S. Lander, Alex Bloemendal, Benjamin M. Neale, and Luke J. O’Connor (2022) _Extremely sparse models of linkage disequilibrium in ancestrally diverse association studies_. Biorxiv doi: https://doi.org/10.1101/2022.09.06.506858
+
+
+The repo includes:
 * a pipeline to generate an inferred tree sequence of high coverage 1000 Genomes Data
 * scripts to generate LDGMs and infer LDGM precision matrices from the 1000 genomes tree sequence
-* an analysis comparing the accuracy of LDGMs from simulated vs. inferred (using [tsinfer](https://tsinfer.readthedocs.io/)) tree sequences
-* code to produce all non-schematic figures in the paper
-
+* code to run analyses in the paper
+* code to produce non-schematic figures in the paper
 
 ### Getting Started
-You must first clone this repo:
+First clone the repo:
 
 ```
 git clone https://github.com/awohns/ldgm_paper.git
@@ -18,7 +20,7 @@ git clone https://github.com/awohns/ldgm_paper.git
 
 ### Downloading LDGMs inferred from the 1000 Genomes Project
 
-Populate this the data directory with LDGMs produced from the 1000 Genomes Project by running:
+Populate the `data` directory with LDGMs produced from the 1000 Genomes Project by running:
 
 ```
 cd data
@@ -54,15 +56,11 @@ make nygc_notrios_chr1.trees
 
 ### Inferring LDGMs and LDGM precision matrices
 
-`make_ldgm.py` contains code to create LDGMs from the inferred tree sequence
+`make_ldgm.py` contains code to create LDGMs from the inferred tree sequences.
 
 
 ### Running validation analyses in MATLAB
 
-...
-
-### Plotting figures
-
-...
+Refer to the code in the `MATLAB` directory to run analyses (save for the analysis shown in Figure 3d) and make all plots in the paper.
 
 
