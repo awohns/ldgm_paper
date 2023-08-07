@@ -20,12 +20,20 @@ git clone https://github.com/awohns/ldgm_paper.git
 
 ### Downloading LDGMs inferred from the 1000 Genomes Project
 
-Populate the `data` directory with LDGMs produced from the 1000 Genomes Project by running:
+The `data` directory can be populated with data from this [Zenodo repository](https://zenodo.org/record/8157131) containing the precision matrices, LDGMs, tree sequences, correlation matrices, and genotypes used and produced by this study. To download all of this data (Warning! This is 43 GB) run:
 
 ```
 cd data
-make download
+make download_all
 ```
+
+Most users will only want to download precision matrices relevant to the ancestry group(s) they are working with. These can be downloaded as follows:
+
+```
+make continent 
+```
+
+Where AFR, AMR, EAS, EUR, or SAS can be specified as "continent".
 
 ### Required Software
 
