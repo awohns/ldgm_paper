@@ -104,12 +104,6 @@ def simplify_ts(ts, superpop, start, stop, prune_snps):
 
 
 def make_graphical_model(ts, recombination_threshold, path_threshold, softmin, num_processes, chunksize, progress):
-    #if False:
-    #bts = ldgm.brick_ts(
-    #    ts, recombination_freq_threshold=recombination_threshold, 
-    #)
-    #    BG = ldgm.brick_graph(bts, threshold=path_threshold)
-    #    mutgraph, _ = ldgm.reduce_graph(BG, bts, threshold=path_threshold, num_processes=num_processes, chunksize=chunksize)
     mutgraph, bts = ldgm.make_ldgm(
         ts,
         path_weight_threshold=path_threshold,
@@ -119,9 +113,6 @@ def make_graphical_model(ts, recombination_threshold, path_threshold, softmin, n
         chunksize=chunksize
     )
 
-    #####
-    # TODO: use code we've been using to create graphical model
-    #####
     bricks_to_muts = get_mut_edges(bts)
     SNPs = list(bricks_to_muts.values())
     SNPs = [x[0] for x in SNPs]
@@ -156,7 +147,7 @@ def iterate_intervals(
 ):
     start = time.time()
     dbsnp_bed_file = pd.read_csv(
-        "/broad/oconnor/trees/nygc/bed_files/bed_chr_" + chrom + ".bed.gz",
+        "bed_chr_" + chrom + ".bed.gz",
         delimiter="\t",
         skiprows=1,
         header=None,
@@ -170,19 +161,13 @@ def iterate_intervals(
     rsids = dbsnp_bed_file.iloc[:, 3].to_numpy()
     dbsnp_bed_file = dbsnp_bed_file.iloc[:, 2].to_numpy()
 
-    #for row, interval in bed_file.iterrows():
     interval = bed_file.iloc[block - 1]
-        #if row + 1 == block:
-    #if superpop is not "ALL":
-    #    output_fn = (path + "/1kg_" + superpop + "_chr" + chrom + "_" + str(interval["start"]) + "_" + str(interval["stop"]) + "_MAF_" + str(prune_snps) + "_RF_" + str(recombination_threshold) + "_T_" + str(path_threshold))
-    #else:
-    output_fn = (path + "/1kg" + "_chr" + chrom + "_" + str(interval["start"]) + "_" + str(interval["stop"])) 
+    output_fn = (path + "/1kg" + "_chr" + chrom + "_" + str(interval[1]) + "_" + str(interval[2])) 
     if not os.path.exists(output_fn + ".adjlist"):
         return_ts, return_vals = simplify_ts(
-            ts, superpop, interval["start"], interval["stop"], prune_snps
+            ts, superpop, interval[1], interval[2], prune_snps
         )
         genotypes = return_ts.genotype_matrix()
-        #np.savetxt(output_fn + ".genos", genotypes.astype(int), fmt='%i', delimiter=",")
         snp_pos = return_ts.tables.sites.position.astype(int)
         ts_ids = np.full(return_ts.num_sites, "NA", dtype=np.dtype("U100"))
         labeled_snps = np.isin(snp_pos, dbsnp_bed_file)
@@ -196,13 +181,6 @@ def iterate_intervals(
         result = np.ma.array(yindex, mask=mask)
         ts_ids[labeled_snps] = rsids[result.data[~result.mask]]
 
-        #(
-        #    mutgraph,
-        #    genotypes,
-        #    (_, anc_alleles, deriv_alleles, identified),
-        #) = make_graphical_model(
-        #    return_ts, recombination_threshold, path_threshold, softmin, num_processes, chunksize, progress
-        #)
         (
             mutgraph, genotypes, snplist
         ) = make_graphical_model(
@@ -212,27 +190,11 @@ def iterate_intervals(
         assert (
             genotypes.shape[0] == snplist.shape[0]
         )
-        #nx.write_edgelist(mutgraph, output_fn + ".adjlist")
-
-        #pd.DataFrame(
-        #    {
-        #        "index": index,
-        #        "position": snp_pos,
-        #        "rsid": ts_ids,
-        #        "anc_allele": anc_alleles,
-        #        "deriv_allele": deriv_alleles,
-        #    }
-        #).to_csv(output_fn + ".snplist", index=None
-        #)
         snplist["site_ids"] = ts_ids
         snplist.to_csv(output_fn + ".snplist", index=None)
         edgelist = ldgm.return_edgelist(mutgraph)
         edgelist.to_csv(output_fn + ".edgelist", index=None)
 
-        #return_vals["labeled_bricks"] = int(mutgraph.number_of_nodes())
-        #return_vals["edges"] = int(mutgraph.number_of_edges())
-        #weights = [mutgraph.get_edge_data(edge[0], edge[1])["weight"] for edge in mutgraph.edges()]
-        #return_vals["average_weight"] = float(np.mean(weights))
         return_vals["num_snps"] = int(genotypes.shape[0])
         print(return_vals)
         end = time.time()
@@ -295,7 +257,7 @@ def main():
     chrom = str(args.chr)
     assert chrom in args.bed_input
     assert chrom in args.ts_input
-    bed_file = pd.read_csv(args.bed_input, delim_whitespace=True)
+    bed_file = pd.read_csv(args.bed_input, delim_whitespace=True, header=None)
     ts = tskit.load(args.ts_input)
     print("Loaded tree sequence")
     iterate_intervals(

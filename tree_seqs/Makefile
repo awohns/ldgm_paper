@@ -49,23 +49,23 @@ chr%_ancestral_states.fa.fai: chr%_ancestral_states.fa
 		samtools faidx $^
 
 ####################
-# NYGC Data
+# 1kg NYGC Data
 ####################
 
-nygc_samples.ped:
+1kg_samples.ped:
 	curl http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/20130606_g1k.ped -o $@
 
-nygc_phased_genotypes_%.vcf.gz:
+1kg_phased_genotypes_%.vcf.gz:
 	curl http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20201028_3202_phased/CCDG_14151_B01_GRM_WGS_2020-08-05_$*.filtered.shapeit2-duohmm-phased.vcf.gz -o $@
 
-nygc_phased_genotypes_%.vcf.gz.tbi: nygc_phased_genotypes_%.vcf.gz
+1kg_phased_genotypes_%.vcf.gz.tbi: 1kg_phased_genotypes_%.vcf.gz
 	/home/unix/awohns/tools/bin/tabix -f -p vcf $^
 
-nygc_%.samples: nygc_phased_genotypes_%.vcf.gz.tbi %_ancestral_states.fa.fai nygc_samples.ped
+1kg_inctrios_%.samples: 1kg_phased_genotypes_%.vcf.gz.tbi %_ancestral_states.fa.fai 1kg_samples.ped
 	python3 convert.py 1kg -p \
-			nygc_phased_genotypes_$*.vcf.gz \
+			1kg_phased_genotypes_$*.vcf.gz \
 			$*_ancestral_states.fa \
-			-m nygc_samples.ped \
+			-m 1kg_samples.ped \
 			--ancestral-states-url=${ANCESTRAL_STATES_URL} \
 			--reference-name=${REFERENCE_NAME} \
 			--num-threads=${NUM_THREADS} \
@@ -74,63 +74,15 @@ nygc_%.samples: nygc_phased_genotypes_%.vcf.gz.tbi %_ancestral_states.fa.fai nyg
 trios_info.txt:
 	curl http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/1000G_698_related_high_coverage.sequence.index -o $@
 
-nygc_notrios_%.samples: nygc_%.samples
+1kg_%.samples: 1kg_inctrios_%.samples trios_info.txt
 	python3 tsutil.py remove_trios $^ trios_info.txt $@
-
-
-######################################################
-# Create LD blocks so all variants fall within a block
-######################################################
-
-final_blocks-chr%.GRCh38.csv:
-	python3 create_new_ld_blocks.py $*
 
 
 ####################################################
 # Standard pipeline for samples file to .trees
 ####################################################
 
-%.ancestors: %.samples
-	python3 -m tsinfer ga -vp -t ${NUM_THREADS} $^
+1kg_%.trees: 1kg_%.samples
+	python3 run_tsinfer_excluded.py $^ ${NUM_THREADS}
 
-%.ancestors.trees: %.ancestors
-	python3 -m tsinfer ma -vp -t ${NUM_THREADS} $*.samples
-
-%.nosimplify.trees: %.ancestors.trees
-	python3 -m tsinfer ms -vp -t ${NUM_THREADS} $*.samples -O $@ --no-simplify
-
-%.nosimplify.nopc.trees: %.ancestors.trees
-	python3 -m tsinfer ms -vp -t ${NUM_THREADS} $*.samples -O $@ --no-simplify --no-path-compression
-
-%.trees: %.nosimplify.trees
-	python3 tsutil.py simplify $^ $@
-
-%.trees.gz: %.trees
-	gzip -c $^ > $@
-
-%.trees.tsz: %.trees
-	tszip -k $^ 
-
-%.trees.bcf: %.trees
-	msp vcf -P 2 $^ | bcftools view - -O b -o $@
-
-
-######################################################
-# Try mapping additional variants to the tree sequence
-######################################################
-
-nygc_removedtrios_mapped_chr%.trees: nygc_removedtrios_chr%.trees
-	python3 map_additional_mutations.py $*
-
-
-###################################
-# List of SNPs in the tree sequence
-###################################
-
-# The NYGC vcf doesn't have rsids, so 
-bed_chr_%.bed.gz:
-	curl ftp://ftp.ncbi.nlm.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/BED/bed_chr_$*.bed.gz -o bed_chr_$*.bed.gz
-
-chr%_snplist.txt: bed_chr_%.bed.gz
-	python find_snplist.py $*
 

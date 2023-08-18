@@ -64,7 +64,7 @@ def main():
         mutation_rate=1.2e-8,
         recombination_rate=1e-8,
         Ne=10000,
-        length=3e4,#3e6,
+        length=3e4,  # 3e6,
         random_seed=seed,
     )
     ts.dump("msprime_ts_seed_" + str(seed) + ".trees")

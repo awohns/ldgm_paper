@@ -16,7 +16,7 @@ EUR:
 SAS:
 	curl -L -o SAS.precision.tar.gz https://zenodo.org/record/8157131/files/SAS.precision.tar.gz?download=1
 
-genos_chr21_chr22
+genos_chr21_chr22:
 	curl -L -o genos_chr21_22.tar.gz https://zenodo.org/record/8157131/files/genos_chr21_22.tar.gz?download=1
 
 ldgms:
@@ -31,4 +31,4 @@ tree_seqs:
 ukb:
 	curl -L -o ukb.tar https://zenodo.org/record/8157131/files/ukb.tar?download=1
 
-download_all: pops_genos_ids AFR AMR EAS EUR SAS
+download_all: pops_genos_ids AFR AMR EAS EUR SAS genos_chr21_chr22 ldgms snplists tree_seqs ukb

@@ -132,7 +132,6 @@ def make_sampledata(args):
 
     converter_class = {
         "1kg": ThousandGenomesConverter,
-        "1kg_chrY": ThousandGenomesChrYConverter, 
     }
     try:
         with tsinfer.SampleData(
@@ -302,11 +301,11 @@ class VcfConverter(Converter):
             missing = False
             if "|" in bases[j]:
                 alleles = bases[j].split("|")
-            else: 
+            else:
                 self.num_unphased += 1
                 alleles = bases[j]
-                #print(row, bases[j])
-                #alleles = bases[j].split("/")
+                # print(row, bases[j])
+                # alleles = bases[j].split("/")
             if len(alleles) != 2:
                 break
             for allele in alleles:
@@ -327,7 +326,7 @@ class VcfConverter(Converter):
                     a[2 * j + 1] = tskit.MISSING_DATA
         else:
             freq = np.sum(a == 1)
-            
+
             if freq == self.num_samples or freq == 0:
                 self.num_invariant += 1
             elif freq == self.num_samples - 1:
@@ -345,15 +344,17 @@ class VcfConverter(Converter):
                 all_alleles.remove(ancestral_state)
                 alleles = [ancestral_state, all_alleles.pop()]
                 ret = Site(
-                    position=row.POS, alleles=alleles, genotypes=a, metadata=metadata, inference=inference
+                    position=row.POS,
+                    alleles=alleles,
+                    genotypes=a,
+                    metadata=metadata,
+                    inference=inference,
                 )
         return ret
 
     def process_sites(self, vcf_subset=None, show_progress=False, max_sites=None):
         num_data_sites = int(
-            subprocess.check_output(
-                ["bcftools", "index", "--nrecords", self.data_file]
-            )
+            subprocess.check_output(["bcftools", "index", "--nrecords", self.data_file])
         )
 
         progress = tqdm.tqdm(total=num_data_sites, disable=not show_progress)
@@ -365,7 +366,6 @@ class VcfConverter(Converter):
         exclude_sites = []
         for row in filter_duplicates_target(vcf, self.target_sites_pos):
             ancestral_state, inference = self.get_ancestral_state(row.POS)
-            #if ancestral_state is not None:
             site = self.convert_genotypes(row, ancestral_state, inference)
             if site is not None:
                 if site.inference is False:
@@ -376,13 +376,6 @@ class VcfConverter(Converter):
                     alleles=site.alleles,
                     metadata=site.metadata,
                 )
-                #else:
-                #    self.samples.add_site(
-                #        position=site.position,
-                #        genotypes=site.genotypes,
-                #        alleles=site.alleles,
-                #        metadata=site.metadata,
-                #    )
 
                 progress.set_postfix(used=str(self.num_sites))
                 self.num_sites += 1
@@ -390,7 +383,11 @@ class VcfConverter(Converter):
                     break
             progress.update()
         progress.close()
-        np.savetxt(self.data_file.split(".")[0] + ".excluded_sites.csv", np.array(exclude_sites).astype(int), fmt='%i')
+        np.savetxt(
+            self.data_file.split(".")[0] + ".excluded_sites.csv",
+            np.array(exclude_sites).astype(int),
+            fmt="%i",
+        )
         report_dict = self.report()
         return report_dict
 
