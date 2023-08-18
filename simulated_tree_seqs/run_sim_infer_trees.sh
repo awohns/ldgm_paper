@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# UGER script to allocate resources to run sim_infer_trees.py
+# Part of analysis shown in figure 3d
+
 #############################
 ### Default UGER Requests ###
 #############################
@@ -20,8 +23,8 @@
 #$ -l h_rt=10:00:00
 
 # I don't like the top level of my homedir filling up.
-#$ -o /broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/out/
-#$ -e /broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/err/
+#$ -o out/
+#$ -e err/
 
 #task array
 #$ -t 1-10
@@ -35,10 +38,9 @@ source /broad/software/scripts/useuse
 
 # Use your dotkit
 use Anaconda
-source activate ldgm_paper_test
+source activate ldgm_paper
 
 echo "starting job" $SGE_TASK_ID
-cd /broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/
-
+cd ldgm_paper/simulated_tree_seqs/
 
 python sim_infer_trees.py --seed $SGE_TASK_ID

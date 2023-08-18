@@ -1,25 +1,27 @@
 import argparse
 import collections
 import pandas as pd
-import ldgm 
+import ldgm
 import numpy as np
 import json
 import tskit
-import networkx as nx
-from tqdm import tqdm
 import os
 import time
+
+# Python script to create LDGMs from inferred tree sequences
+
 superpops = {
-        "EAS": [0, 1, 2, 3, 4],
-        "EUR": [5, 6, 7, 8, 9],
-        "AFR": [10, 11, 12, 13, 14, 15, 16],
-        "AMR": [17, 18, 19, 20],
-        "SAS": [21, 22, 23, 24, 25],
-    }
+    "EAS": [0, 1, 2, 3, 4],
+    "EUR": [5, 6, 7, 8, 9],
+    "AFR": [10, 11, 12, 13, 14, 15, 16],
+    "AMR": [17, 18, 19, 20],
+    "SAS": [21, 22, 23, 24, 25],
+}
 pop_to_superpop = {}
 for superpop, pop in superpops.items():
     for p in pop:
         pop_to_superpop[p] = superpop
+
 
 def get_mut_edges(ts):
     muts_to_brick = {}
@@ -46,7 +48,7 @@ def simplify_ts(ts, superpop, start, stop, prune_snps):
     # Need to add one to the stop position because the intervals in the bed file are inclusive
     # and tskit uses half open [) intervals
     ts = ts.keep_intervals([[start, stop + 1]], simplify=True)
-    
+
     return_vals = {}
     return_vals["start"] = int(start)
     return_vals["stop"] = int(stop)
@@ -73,14 +75,17 @@ def simplify_ts(ts, superpop, start, stop, prune_snps):
             cur_pop_keep_sites = 0
             for tree in ts_superpop.trees():
                 for site in tree.sites():
-                    if len(site.mutations) == 1 and len(ts.site(site.id).mutations) == 1:
+                    if (
+                        len(site.mutations) == 1
+                        and len(ts.site(site.id).mutations) == 1
+                    ):
                         freq = tree.num_samples(site.mutations[0].node) / a
                         if freq >= prune_snps and freq <= 1 - prune_snps:
                             sites_to_keep.append(site.id)
                             cur_pop_keep_sites += 1
                     elif len(site.mutations) > 1:
                         pass
-                        #raise ValueError("Site cannot have more than one mutation")
+                        # raise ValueError("Site cannot have more than one mutation")
             print(
                 "Superpop: {} has {} SNPs above 1% frequency".format(
                     superpop, cur_pop_keep_sites
@@ -96,21 +101,32 @@ def simplify_ts(ts, superpop, start, stop, prune_snps):
         return_vals["kept_sites"] = len(sites_to_keep)
         return_vals["deleted_sites"] = len(sites_to_delete)
         return_ts = ts.delete_sites(np.array(sites_to_delete)).simplify()
-        assert return_ts.num_mutations == return_ts.num_sites, (return_ts.num_sites, return_ts.num_mutations)
+        assert return_ts.num_mutations == return_ts.num_sites, (
+            return_ts.num_sites,
+            return_ts.num_mutations,
+        )
     else:
         raise ValueError("Must specify a superpop or 'ALL'")
 
     return return_ts, return_vals
 
 
-def make_graphical_model(ts, recombination_threshold, path_threshold, softmin, num_processes, chunksize, progress):
+def make_graphical_model(
+    ts,
+    recombination_threshold,
+    path_threshold,
+    softmin,
+    num_processes,
+    chunksize,
+    progress,
+):
     mutgraph, bts = ldgm.make_ldgm(
         ts,
         path_weight_threshold=path_threshold,
         recombination_freq_threshold=recombination_threshold,
         progress=progress,
         num_processes=num_processes,
-        chunksize=chunksize
+        chunksize=chunksize,
     )
 
     bricks_to_muts = get_mut_edges(bts)
@@ -143,7 +159,7 @@ def iterate_intervals(
     path,
     num_processes,
     chunksize,
-    progress
+    progress,
 ):
     start = time.time()
     dbsnp_bed_file = pd.read_csv(
@@ -162,7 +178,9 @@ def iterate_intervals(
     dbsnp_bed_file = dbsnp_bed_file.iloc[:, 2].to_numpy()
 
     interval = bed_file.iloc[block - 1]
-    output_fn = (path + "/1kg" + "_chr" + chrom + "_" + str(interval[1]) + "_" + str(interval[2])) 
+    output_fn = (
+        path + "/1kg" + "_chr" + chrom + "_" + str(interval[1]) + "_" + str(interval[2])
+    )
     if not os.path.exists(output_fn + ".adjlist"):
         return_ts, return_vals = simplify_ts(
             ts, superpop, interval[1], interval[2], prune_snps
@@ -181,15 +199,17 @@ def iterate_intervals(
         result = np.ma.array(yindex, mask=mask)
         ts_ids[labeled_snps] = rsids[result.data[~result.mask]]
 
-        (
-            mutgraph, genotypes, snplist
-        ) = make_graphical_model(
-            return_ts, recombination_threshold, path_threshold, softmin, num_processes, chunksize, progress
+        (mutgraph, genotypes, snplist) = make_graphical_model(
+            return_ts,
+            recombination_threshold,
+            path_threshold,
+            softmin,
+            num_processes,
+            chunksize,
+            progress,
         )
 
-        assert (
-            genotypes.shape[0] == snplist.shape[0]
-        )
+        assert genotypes.shape[0] == snplist.shape[0]
         snplist["site_ids"] = ts_ids
         snplist.to_csv(output_fn + ".snplist", index=None)
         edgelist = ldgm.return_edgelist(mutgraph)
@@ -245,9 +265,7 @@ def main():
     parser.add_argument(
         "--num-processes", type=int, default=10, help="Number of processes to use"
     )
-    parser.add_argument(
-        "--chunksize", type=int, default=10, help="Chunksize"
-    )
+    parser.add_argument("--chunksize", type=int, default=10, help="Chunksize")
     parser.add_argument(
         "--progress", action="store_true", help="If passed, show progress bar"
     )
@@ -273,7 +291,7 @@ def main():
         args.output,
         args.num_processes,
         args.chunksize,
-        args.progress
+        args.progress,
     )
 
 

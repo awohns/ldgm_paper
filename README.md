@@ -6,9 +6,9 @@ This repository hosts the source code and resources to reproduce the analysis an
 
 
 ### Respository Contents:
-* a pipeline to generate inferred tree sequences from high coverage 1000 Genomes data
-* scripts to generate LDGMs from the 1000 Genomes tree sequences and subsequently infer LDGM precision matrices from LDGMs
-* code to run analyses in the paper
+* a pipeline to generate inferred tree sequences from high coverage 1000 Genomes data (in the `tree_seqs` directory)
+* scripts to generate LDGMs from the 1000 Genomes tree sequences and subsequently infer LDGM precision matrices from LDGMs (in the `inferred_ldgms` directory)
+* code to run analyses in the paper (in the `MATLAB` and `simulated_tree_seqs` directories)
 
 
 ### Getting Started
@@ -29,6 +29,12 @@ make continent
 ```
 
 Where AFR, AMR, EAS, EUR, or SAS can be specified as "continent".
+
+If you intend to reinfer LD precision matrices, you must download the population data file:
+
+```
+make pops_genos_ids
+```
 
 To download all of this data (Warning, this is 43 GB) run:
 
@@ -87,8 +93,7 @@ make EUR_LD_blocks.chr.bed
 
 3. Next, `run_make_LDGM_chr.sh` contains code to create LDGMs from the inferred tree sequences. This bash script is written for the Broad Institute's internal UGER research computing cluster and is simply used to allocate resources to run `make_LDGMs.py` for every LD block. The script is designed to be run for each chromosome: currently chromsome 21 is specified, but any autosome can be run by modifying the value of `CHR=` and modifying the task list to reflect the number of blocks in that chromsome. You can modify the script to run in your preferred environment.
 
-4. After creating LDGMs with this code, create LDGM precision matrices by running the code in 'run_make_precision_matrices.sh`. You will need to change the commented line of code to point towards your local version of the `ldgm` code repository. This script is also written for the Broad Institute's internal UGER research computing cluster, but can be modified for your preferred environment: this file is simply allocating resources to run the [estimatePrecision function from `ldgm`](https://github.com/awohns/ldgm/blob/42719a699097a7bb08a66b548a96243d1499d129/MATLAB/precision/estimatePrecision.m).
-
+4. After creating LDGMs with this code, create LDGM precision matrices by running the code in `run_make_precision_matrices.sh`. You will need to change the commented line of code to point towards your local version of the `ldgm` code repository. This script is also written for the Broad Institute's internal UGER research computing cluster, but can be modified for your preferred environment: this file is simply allocating resources to run the [estimatePrecision function](https://github.com/awohns/ldgm/blob/42719a699097a7bb08a66b548a96243d1499d129/MATLAB/precision/estimatePrecision.m) from `ldgm`.
 
 ### Running analyses
 

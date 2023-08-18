@@ -14,7 +14,6 @@ import attr
 import cyvcf2
 import pysam
 import tqdm
-import pandas as pd
 import multiprocessing
 
 import tskit

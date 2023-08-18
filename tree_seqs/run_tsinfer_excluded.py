@@ -1,6 +1,5 @@
 import argparse
 import tskit
-import numpy as np
 import tsinfer
 import pandas as pd
 

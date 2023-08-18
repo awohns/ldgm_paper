@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# UGER script to infer LDGM precision matrices from LDGMs created
+# from msprime simulations and inferred tree sequences from these simulations.
+# Part of the analysis shown in Figure 3d
+
 #############################
 ### Default UGER Requests ###
 #############################
@@ -21,8 +25,8 @@
 #$ -l h_rt=82:00:00
 
 # I don't like the top level of my homedir filling up.
-#$ -o /broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/out/
-#$ -e /broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/err/
+#$ -o out/
+#$ -e err/
 
 #task array
 #$ -t 1-10
@@ -38,12 +42,13 @@ source /broad/software/scripts/useuse
 use Matlab
 
 cd /broad/oconnor/trees/final_ldgm_paper/ldgm_paper/ldgm/MATLAB/precision
-matlab -r "estimatePrecision('/broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/',\
+# Run LDGM precision matrix inference for LDGMs created from the simulated tree seqs
+matlab -r "estimatePrecision('ldgm_paper/simulated_tree_seqs/',\
     'data_type','genotypes',\
     'data_file_index',SGE_TASK_ID,\
     'data_pattern','sim_*_MAF_0.01_RF_0.01_T_8',\
     'data_file_extension','.genos',\
-    'output_dir','/broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/',\
+    'output_dir','ldgm_paper/simulated_tree_seqs/',\
     'AF_column_name','0',\
     'path_distance_threshold',4,\
     'l1_penalty',0.10,\
@@ -52,12 +57,13 @@ matlab -r "estimatePrecision('/broad/oconnor/trees/final_ldgm_paper/ldgm_paper/s
     'penalized_iterations', 5,\
     'banded_control_ldgm',0);"
 
-matlab -r "estimatePrecision('/broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/',\
+# Run LDGM precision matrix inference for LDGMs created from the inferred tree seqs
+matlab -r "estimatePrecision('ldgm_paper/simulated_tree_seqs/',\
     'data_type','genotypes',\
     'data_file_index',SGE_TASK_ID,\
     'data_pattern','inferred_sim_*_MAF_0.01_RF_0.01_T_8',\
     'data_file_extension','.genos',\
-    'output_dir','/broad/oconnor/trees/final_ldgm_paper/ldgm_paper/simulated_tree_seqs/',\
+    'output_dir','ldgm_paper/simulated_tree_seqs/',\
     'AF_column_name','0',\
     'path_distance_threshold',4,\
     'l1_penalty',0.10,\

@@ -1,11 +1,11 @@
 """
-Simple analysis script producing a simulated and inferred tree sequence.
+Simple analysis script producing simulated and inferred tree sequences.
 LDGMs and LDGM precision matrices are subsequently created from these files.
+Part of analysis shown in Figure 3d.
 """
 
 import argparse
 import msprime
-import stdpopsim
 import tskit
 import tsinfer
 import ldgm

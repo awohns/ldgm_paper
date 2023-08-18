@@ -2,8 +2,6 @@
 Various utilities for manipulating tree sequences and running tsinfer.
 """
 import argparse
-import csv
-import re
 import json
 import pandas as pd
 
