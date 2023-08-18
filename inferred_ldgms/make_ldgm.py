@@ -1,25 +1,27 @@
 import argparse
 import collections
 import pandas as pd
-import ldgm 
+import ldgm
 import numpy as np
 import json
 import tskit
-import networkx as nx
-from tqdm import tqdm
 import os
 import time
+
+# Python script to create LDGMs from inferred tree sequences
+
 superpops = {
-        "EAS": [0, 1, 2, 3, 4],
-        "EUR": [5, 6, 7, 8, 9],
-        "AFR": [10, 11, 12, 13, 14, 15, 16],
-        "AMR": [17, 18, 19, 20],
-        "SAS": [21, 22, 23, 24, 25],
-    }
+    "EAS": [0, 1, 2, 3, 4],
+    "EUR": [5, 6, 7, 8, 9],
+    "AFR": [10, 11, 12, 13, 14, 15, 16],
+    "AMR": [17, 18, 19, 20],
+    "SAS": [21, 22, 23, 24, 25],
+}
 pop_to_superpop = {}
 for superpop, pop in superpops.items():
     for p in pop:
         pop_to_superpop[p] = superpop
+
 
 def get_mut_edges(ts):
     muts_to_brick = {}
@@ -46,7 +48,7 @@ def simplify_ts(ts, superpop, start, stop, prune_snps):
     # Need to add one to the stop position because the intervals in the bed file are inclusive
     # and tskit uses half open [) intervals
     ts = ts.keep_intervals([[start, stop + 1]], simplify=True)
-    
+
     return_vals = {}
     return_vals["start"] = int(start)
     return_vals["stop"] = int(stop)
@@ -73,14 +75,17 @@ def simplify_ts(ts, superpop, start, stop, prune_snps):
             cur_pop_keep_sites = 0
             for tree in ts_superpop.trees():
                 for site in tree.sites():
-                    if len(site.mutations) == 1 and len(ts.site(site.id).mutations) == 1:
+                    if (
+                        len(site.mutations) == 1
+                        and len(ts.site(site.id).mutations) == 1
+                    ):
                         freq = tree.num_samples(site.mutations[0].node) / a
                         if freq >= prune_snps and freq <= 1 - prune_snps:
                             sites_to_keep.append(site.id)
                             cur_pop_keep_sites += 1
                     elif len(site.mutations) > 1:
                         pass
-                        #raise ValueError("Site cannot have more than one mutation")
+                        # raise ValueError("Site cannot have more than one mutation")
             print(
                 "Superpop: {} has {} SNPs above 1% frequency".format(
                     superpop, cur_pop_keep_sites
@@ -96,32 +101,34 @@ def simplify_ts(ts, superpop, start, stop, prune_snps):
         return_vals["kept_sites"] = len(sites_to_keep)
         return_vals["deleted_sites"] = len(sites_to_delete)
         return_ts = ts.delete_sites(np.array(sites_to_delete)).simplify()
-        assert return_ts.num_mutations == return_ts.num_sites, (return_ts.num_sites, return_ts.num_mutations)
+        assert return_ts.num_mutations == return_ts.num_sites, (
+            return_ts.num_sites,
+            return_ts.num_mutations,
+        )
     else:
         raise ValueError("Must specify a superpop or 'ALL'")
 
     return return_ts, return_vals
 
 
-def make_graphical_model(ts, recombination_threshold, path_threshold, softmin, num_processes, chunksize, progress):
-    #if False:
-    #bts = ldgm.brick_ts(
-    #    ts, recombination_freq_threshold=recombination_threshold, 
-    #)
-    #    BG = ldgm.brick_graph(bts, threshold=path_threshold)
-    #    mutgraph, _ = ldgm.reduce_graph(BG, bts, threshold=path_threshold, num_processes=num_processes, chunksize=chunksize)
+def make_graphical_model(
+    ts,
+    recombination_threshold,
+    path_threshold,
+    softmin,
+    num_processes,
+    chunksize,
+    progress,
+):
     mutgraph, bts = ldgm.make_ldgm(
         ts,
         path_weight_threshold=path_threshold,
         recombination_freq_threshold=recombination_threshold,
         progress=progress,
         num_processes=num_processes,
-        chunksize=chunksize
+        chunksize=chunksize,
     )
 
-    #####
-    # TODO: use code we've been using to create graphical model
-    #####
     bricks_to_muts = get_mut_edges(bts)
     SNPs = list(bricks_to_muts.values())
     SNPs = [x[0] for x in SNPs]
@@ -152,11 +159,11 @@ def iterate_intervals(
     path,
     num_processes,
     chunksize,
-    progress
+    progress,
 ):
     start = time.time()
     dbsnp_bed_file = pd.read_csv(
-        "/broad/oconnor/trees/nygc/bed_files/bed_chr_" + chrom + ".bed.gz",
+        "bed_chr_" + chrom + ".bed.gz",
         delimiter="\t",
         skiprows=1,
         header=None,
@@ -170,19 +177,15 @@ def iterate_intervals(
     rsids = dbsnp_bed_file.iloc[:, 3].to_numpy()
     dbsnp_bed_file = dbsnp_bed_file.iloc[:, 2].to_numpy()
 
-    #for row, interval in bed_file.iterrows():
     interval = bed_file.iloc[block - 1]
-        #if row + 1 == block:
-    #if superpop is not "ALL":
-    #    output_fn = (path + "/1kg_" + superpop + "_chr" + chrom + "_" + str(interval["start"]) + "_" + str(interval["stop"]) + "_MAF_" + str(prune_snps) + "_RF_" + str(recombination_threshold) + "_T_" + str(path_threshold))
-    #else:
-    output_fn = (path + "/1kg" + "_chr" + chrom + "_" + str(interval["start"]) + "_" + str(interval["stop"])) 
+    output_fn = (
+        path + "/1kg" + "_chr" + chrom + "_" + str(interval[1]) + "_" + str(interval[2])
+    )
     if not os.path.exists(output_fn + ".adjlist"):
         return_ts, return_vals = simplify_ts(
-            ts, superpop, interval["start"], interval["stop"], prune_snps
+            ts, superpop, interval[1], interval[2], prune_snps
         )
         genotypes = return_ts.genotype_matrix()
-        #np.savetxt(output_fn + ".genos", genotypes.astype(int), fmt='%i', delimiter=",")
         snp_pos = return_ts.tables.sites.position.astype(int)
         ts_ids = np.full(return_ts.num_sites, "NA", dtype=np.dtype("U100"))
         labeled_snps = np.isin(snp_pos, dbsnp_bed_file)
@@ -196,43 +199,22 @@ def iterate_intervals(
         result = np.ma.array(yindex, mask=mask)
         ts_ids[labeled_snps] = rsids[result.data[~result.mask]]
 
-        #(
-        #    mutgraph,
-        #    genotypes,
-        #    (_, anc_alleles, deriv_alleles, identified),
-        #) = make_graphical_model(
-        #    return_ts, recombination_threshold, path_threshold, softmin, num_processes, chunksize, progress
-        #)
-        (
-            mutgraph, genotypes, snplist
-        ) = make_graphical_model(
-            return_ts, recombination_threshold, path_threshold, softmin, num_processes, chunksize, progress
+        (mutgraph, genotypes, snplist) = make_graphical_model(
+            return_ts,
+            recombination_threshold,
+            path_threshold,
+            softmin,
+            num_processes,
+            chunksize,
+            progress,
         )
 
-        assert (
-            genotypes.shape[0] == snplist.shape[0]
-        )
-        #nx.write_edgelist(mutgraph, output_fn + ".adjlist")
-
-        #pd.DataFrame(
-        #    {
-        #        "index": index,
-        #        "position": snp_pos,
-        #        "rsid": ts_ids,
-        #        "anc_allele": anc_alleles,
-        #        "deriv_allele": deriv_alleles,
-        #    }
-        #).to_csv(output_fn + ".snplist", index=None
-        #)
+        assert genotypes.shape[0] == snplist.shape[0]
         snplist["site_ids"] = ts_ids
         snplist.to_csv(output_fn + ".snplist", index=None)
         edgelist = ldgm.return_edgelist(mutgraph)
         edgelist.to_csv(output_fn + ".edgelist", index=None)
 
-        #return_vals["labeled_bricks"] = int(mutgraph.number_of_nodes())
-        #return_vals["edges"] = int(mutgraph.number_of_edges())
-        #weights = [mutgraph.get_edge_data(edge[0], edge[1])["weight"] for edge in mutgraph.edges()]
-        #return_vals["average_weight"] = float(np.mean(weights))
         return_vals["num_snps"] = int(genotypes.shape[0])
         print(return_vals)
         end = time.time()
@@ -283,9 +265,7 @@ def main():
     parser.add_argument(
         "--num-processes", type=int, default=10, help="Number of processes to use"
     )
-    parser.add_argument(
-        "--chunksize", type=int, default=10, help="Chunksize"
-    )
+    parser.add_argument("--chunksize", type=int, default=10, help="Chunksize")
     parser.add_argument(
         "--progress", action="store_true", help="If passed, show progress bar"
     )
@@ -295,7 +275,7 @@ def main():
     chrom = str(args.chr)
     assert chrom in args.bed_input
     assert chrom in args.ts_input
-    bed_file = pd.read_csv(args.bed_input, delim_whitespace=True)
+    bed_file = pd.read_csv(args.bed_input, delim_whitespace=True, header=None)
     ts = tskit.load(args.ts_input)
     print("Loaded tree sequence")
     iterate_intervals(
@@ -311,7 +291,7 @@ def main():
         args.output,
         args.num_processes,
         args.chunksize,
-        args.progress
+        args.progress,
     )
 
 
