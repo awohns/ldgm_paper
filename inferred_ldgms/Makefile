@@ -21,7 +21,7 @@ EUR_LD_blocks.bed:
 	tr -s ' ' '\t' < EUR_LD_blocks.bed > EUR_LD_blocks.tab.bed
 	mv EUR_LD_blocks.tab.bed EUR_LD_blocks.bed
 
-EUR_LD_blocks.chr%.bed: EUR_LD_blocks.bed
+EUR_LD_blocks.chr.bed: EUR_LD_blocks.bed
 	awk 'BEGIN{FS="\t";OFS="\t"}NR>1{print > "EUR_LD_blocks."$$1".bed"}' $^
 
 ###################################
@@ -35,5 +35,3 @@ bed_chr_%.bed.gz:
 chr%_snplist.txt: bed_chr_%.bed.gz
 	python find_snplist.py $*
 
-
-python make_ldgm.py 21 ALL EUR_LD_blocks.chr21.bed 1 ../tree_seqs/nygc_notrios_chr21.trees . --path-threshold 8 --prune-snps 0.01 --recombination-threshold 0.01 --progress --num-processes 5
